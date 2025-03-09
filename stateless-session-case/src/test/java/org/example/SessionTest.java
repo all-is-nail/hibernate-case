@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import static org.junit.Assert.*;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = AppConfig.class)
 public class SessionTest {
@@ -26,21 +28,23 @@ public class SessionTest {
         // use sessionFactory to get session
         Session session = sessionFactory.openSession();
         session.beginTransaction();
+
         User user = new User();
         user.setName("test");
         user.setEmail("aa@a.com");
         session.save(user);
-        // after save, the session will contain the user
         session.flush();
-        assert session.contains(user);
-        // clear session
+
+        assertTrue("Session should contain user after flush", session.contains(user));
+
         session.clear();
-        // after clear, the session will not contain the user
-        assert !session.contains(user);
-        // commit the transaction
+        assertFalse("Session should not contain user after clear", session.contains(user));
+
         session.getTransaction().commit();
-        // after commit, the user will be saved to the database
-        assert user.equals(session.get(User.class, user.getId()));
+        assertEquals("User should be retrievable from database after commit",
+                user,
+                session.get(User.class, user.getId()));
+
         session.close();
     }
 
@@ -65,27 +69,26 @@ public class SessionTest {
         // use sessionFactory to get firstSession
         Session firstSession = sessionFactory.openSession();
         firstSession.beginTransaction();
+
         User user = new User();
         user.setName("test");
         user.setEmail("test@test.org");
         firstSession.save(user);
-        // flush the session but not commit
         firstSession.flush();
-        // open a new session
+
         Session secondSession = sessionFactory.openSession();
         secondSession.beginTransaction();
-        // get the user from the database
+
         User notExistsUser = secondSession.get(User.class, user.getId());
-        assert notExistsUser == null;
-        // commit the transaction
+        assertNull("User should not be visible in second session before commit", notExistsUser);
+
         firstSession.getTransaction().commit();
-        // close the first session
         firstSession.close();
-        // use the second session to get the user from the database
+
         User existsUser = secondSession.get(User.class, user.getId());
-        assert existsUser != null;
-        assert user.equals(existsUser);
-        // close the second session
+        assertNotNull("User should be visible in second session after commit", existsUser);
+        assertEquals("Retrieved user should match original user", user, existsUser);
+
         secondSession.close();
     }
 }
