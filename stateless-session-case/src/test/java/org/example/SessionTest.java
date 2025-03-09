@@ -43,4 +43,49 @@ public class SessionTest {
         assert user.equals(session.get(User.class, user.getId()));
         session.close();
     }
+
+    /**
+     * Tests next scenario:
+     * 1. Open the first session
+     * 2. Begin a transaction for the first session
+     * 3. Create a user
+     * 4. Save the user
+     * 5. Flush the session but not commit
+     * 6. Open the second session
+     * 7. Get the user from the database
+     * 8. Verify the user is null
+     * 9. Commit the transaction for the first session
+     * 10. Close the first session
+     * 11. use the second session to get the user from the database
+     * 12. Verify the user is not null
+     * 13. Close the second session
+     */
+    @Test
+    public void testFlushAndCommitOperation() {
+        // use sessionFactory to get firstSession
+        Session firstSession = sessionFactory.openSession();
+        firstSession.beginTransaction();
+        User user = new User();
+        user.setName("test");
+        user.setEmail("test@test.org");
+        firstSession.save(user);
+        // flush the session but not commit
+        firstSession.flush();
+        // open a new session
+        Session secondSession = sessionFactory.openSession();
+        secondSession.beginTransaction();
+        // get the user from the database
+        User notExistsUser = secondSession.get(User.class, user.getId());
+        assert notExistsUser == null;
+        // commit the transaction
+        firstSession.getTransaction().commit();
+        // close the first session
+        firstSession.close();
+        // use the second session to get the user from the database
+        User existsUser = secondSession.get(User.class, user.getId());
+        assert existsUser != null;
+        assert user.equals(existsUser);
+        // close the second session
+        secondSession.close();
+    }
 }
