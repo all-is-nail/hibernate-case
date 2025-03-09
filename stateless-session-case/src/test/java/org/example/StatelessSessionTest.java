@@ -12,7 +12,6 @@ import org.hibernate.StatelessSession;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,6 +22,9 @@ public class StatelessSessionTest {
 
     @Autowired
     private SessionFactory sessionFactory;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @Test
     public void testStatelessSession() {
@@ -40,16 +42,13 @@ public class StatelessSessionTest {
 
     @Test
     public void testStatelessSessionWithBulkInsert() {
-        TransactionTemplate transactionTemplate = new TransactionTemplate(
-                new HibernateTransactionManager(sessionFactory));
-
         transactionTemplate.execute(status -> {
             StatelessSession statelessSession = sessionFactory.openStatelessSession();
 
             try {
                 for (int i = 0; i < 10; i++) {
                     User user = new User();
-                    user.setName("test" + i);
+                    user.setName("testStatelessSession" + i);
                     user.setEmail("aa@a.com");
                     statelessSession.insert(user);
                 }
@@ -61,11 +60,11 @@ public class StatelessSessionTest {
         });
 
         try (Session session = sessionFactory.openSession()) {
-            List<User> users = session.createQuery("from User where name like 'test%'", User.class).list();
+            List<User> users = session.createQuery("from User where name like 'testStatelessSession%'", User.class).list();
             assertEquals("Should have inserted 10 users", 10, users.size());
             for (int i = 0; i < 10; i++) {
                 User user = users.get(i);
-                assertEquals("test" + i, user.getName());
+                assertEquals("testStatelessSession" + i, user.getName());
                 assertEquals("aa@a.com", user.getEmail());
             }
         }
