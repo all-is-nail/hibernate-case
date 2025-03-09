@@ -22,7 +22,7 @@ public class SessionTest {
      * and verifying persistence using Hibernate Session API.
      */
     @Test
-    public void test() {
+    public void testFlushAndClearOperation() {
         // use sessionFactory to get session
         Session session = sessionFactory.openSession();
         session.beginTransaction();
