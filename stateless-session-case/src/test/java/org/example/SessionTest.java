@@ -1,5 +1,7 @@
 package org.example;
 
+import java.util.List;
+
 import org.example.config.AppConfig;
 import org.example.entity.User;
 import org.hibernate.Session;
@@ -91,4 +93,59 @@ public class SessionTest {
 
         secondSession.close();
     }
+
+    /**
+     * Tests bulk insert operation using Hibernate Session API.
+     * 
+     * This test performs a bulk insert of 100 users into the database.
+     * It uses a session to save the users and flushes the session after every 10 users.
+     * The session is also cleared after every flush to ensure the users are not visible in the session.
+     */
+    @Test
+    public void testBulkInsert() {
+        Session session = sessionFactory.openSession();
+        session.beginTransaction();
+
+        int count = 0;
+        for (int i = 0; i < 100; i++) {
+            User user = new User();
+            user.setName("testBulkInsert" + i);
+            user.setEmail("aa@a.com");
+            session.save(user);
+            if (++count % 10 == 0) {
+                flushAndClearSession(session);
+                count = 0;
+            }
+        }
+
+        if (count > 0) {
+            flushAndClearSession(session);
+        }
+
+        session.getTransaction().commit();
+        session.close();
+
+        try (Session newSession = sessionFactory.openSession()) {
+            List<User> users = newSession.createQuery("from User where name like 'testBulkInsert%'", User.class).list();
+            assertEquals("Should have inserted 100 users", 100, users.size());
+            for (int i = 0; i < 100; i++) {
+                User user = users.get(i);
+                assertEquals("testBulkInsert" + i, user.getName());
+                assertEquals("aa@a.com", user.getEmail());
+            }
+        }
+    }
+
+    /**
+     * Flushes and clears the session.
+     * 
+     * This method flushes the session and clears it to ensure the users are not visible in the session.
+     * 
+     * @param session The session to flush and clear.
+     */
+    private void flushAndClearSession(Session session) {
+        session.flush();
+        session.clear();
+    }
+
 }
