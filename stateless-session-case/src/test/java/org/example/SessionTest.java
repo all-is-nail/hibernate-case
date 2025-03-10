@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.junit.Assert.*;
 
@@ -20,6 +21,9 @@ public class SessionTest {
 
     @Autowired
     private SessionFactory sessionFactory;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     /**
      * Tests session operations including saving a user, clearing the session,
@@ -131,6 +135,42 @@ public class SessionTest {
             for (int i = 0; i < 100; i++) {
                 User user = users.get(i);
                 assertEquals("testBulkInsert" + i, user.getName());
+                assertEquals("aa@a.com", user.getEmail());
+            }
+        }
+    }
+
+    @Test
+    public void testBulkInsertWithTransactionTemplate() {
+        transactionTemplate.execute(status -> {
+            Session session = sessionFactory.getCurrentSession();
+
+            int count = 0;
+            for (int i = 0; i < 100; i++) {
+                User user = new User();
+                user.setName("testBulkInsertTx" + i);
+                user.setEmail("aa@a.com");
+                session.save(user);
+                if (++count % 10 == 0) {
+                    flushAndClearSession(session);
+                    count = 0;
+                }
+            }
+
+            if (count > 0) {
+                flushAndClearSession(session);
+            }
+
+            return null;
+        });
+
+        try (Session verifySession = sessionFactory.openSession()) {
+            List<User> users = verifySession.createQuery("from User where name like 'testBulkInsertTx%'", User.class).list();
+            assertEquals("Should have inserted 100 users", 100, users.size());
+
+            for (int i = 0; i < 100; i++) {
+                User user = users.get(i);
+                assertEquals("testBulkInsertTx" + i, user.getName());
                 assertEquals("aa@a.com", user.getEmail());
             }
         }
