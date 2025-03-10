@@ -140,6 +140,13 @@ public class SessionTest {
         }
     }
 
+    /**
+     * Tests bulk insert operation using TransactionTemplate.
+     * 
+     * This test performs a bulk insert of 100 users into the database.
+     * It uses a TransactionTemplate to execute the insert operation.
+     * The session is also flushed and cleared after every 10 users.
+     */
     @Test
     public void testBulkInsertWithTransactionTemplate() {
         transactionTemplate.execute(status -> {
