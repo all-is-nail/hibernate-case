@@ -43,9 +43,7 @@ public class StatelessSessionTest {
     @Test
     public void testStatelessSessionWithBulkInsert() {
         transactionTemplate.execute(status -> {
-            StatelessSession statelessSession = sessionFactory.openStatelessSession();
-
-            try {
+            try (StatelessSession statelessSession = sessionFactory.openStatelessSession()) {
                 for (int i = 0; i < 10; i++) {
                     User user = new User();
                     user.setName("testStatelessSession" + i);
@@ -54,8 +52,6 @@ public class StatelessSessionTest {
                 }
 
                 return null;
-            } finally {
-                statelessSession.close();
             }
         });
 
